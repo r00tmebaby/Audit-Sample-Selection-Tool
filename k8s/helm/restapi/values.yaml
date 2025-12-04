@@ -1,0 +1,40 @@
+namespace: restapi
+replicaCount: 1
+
+image:
+  repository: audit-sampling-api
+  tag: latest
+  pullPolicy: IfNotPresent
+
+service:
+  type: ClusterIP
+  port: 8000
+
+artifacts:
+  createPVC: true
+  pvcName: sampling-artifacts
+  storageClassName: ""
+  accessModes:
+    - ReadWriteMany
+  size: 5Gi
+  mountPath: /artifacts
+
+worker:
+  namespace: workers
+  mode: k8s
+  image: audit-sampling-worker:latest
+  backoffLimit: 0
+  ttlSecondsAfterFinished: 120
+
+resources:
+  limits:
+    cpu: 500m
+    memory: 512Mi
+  requests:
+    cpu: 100m
+    memory: 256Mi
+
+nodeSelector: {}
+tolerations: []
+affinity: {}
+

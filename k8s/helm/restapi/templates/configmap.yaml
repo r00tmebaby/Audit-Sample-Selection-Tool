@@ -1,0 +1,13 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: restapi-config
+  namespace: {{ .Values.namespace }}
+data:
+  WORKER_MODE: {{ .Values.worker.mode | quote }}
+  WORKER_NAMESPACE: {{ .Values.worker.namespace | quote }}
+  WORKER_IMAGE: {{ .Values.worker.image | quote }}
+  WORKER_BACKOFF_LIMIT: {{ .Values.worker.backoffLimit | quote }}
+  WORKER_TTL_SECONDS_AFTER_FINISHED: {{ .Values.worker.ttlSecondsAfterFinished | quote }}
+  ARTIFACT_ROOT: {{ .Values.artifacts.mountPath | quote }}
+

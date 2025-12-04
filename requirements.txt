@@ -1,0 +1,17 @@
+# Runtime
+pydantic>=2.0.0
+setuptools
+structlog>=24.1.0
+pytest>=7.0.0
+XlsxWriter>=3.2.0
+fastapi>=0.115.0
+uvicorn>=0.30.0
+python-multipart>=0.0.7
+# Progress bars
+tqdm>=4.66.0
+openpyxl>=3.1.0  # test-only (reading XLSX)
+
+# Dev tools
+black==24.10.0
+isort==5.13.2
+mypy==1.13.0

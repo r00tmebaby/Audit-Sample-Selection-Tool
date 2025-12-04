@@ -1,0 +1,14 @@
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: restapi-job-runner-binding
+  namespace: {{ .Values.worker.namespace }}
+subjects:
+  - kind: ServiceAccount
+    name: restapi-sa
+    namespace: {{ .Values.namespace }}
+roleRef:
+  kind: Role
+  name: restapi-job-runner
+  apiGroup: rbac.authorization.k8s.io
+

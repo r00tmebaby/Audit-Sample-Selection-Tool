@@ -1,0 +1,14 @@
+{{- if .Values.artifacts.createPVC }}
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ .Values.artifacts.pvcName }}
+  namespace: {{ .Values.namespace }}
+spec:
+  accessModes: {{ toYaml .Values.artifacts.accessModes | nindent 4 }}
+  resources:
+    requests:
+      storage: {{ .Values.artifacts.size }}
+  storageClassName: {{ .Values.artifacts.storageClassName | quote }}
+{{- end }}
+
