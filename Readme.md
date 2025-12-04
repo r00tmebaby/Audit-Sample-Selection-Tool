@@ -1,4 +1,4 @@
-[![CI](https://github.com/OWNER/REPO/actions/workflows/ci.yml/badge.svg)](https://github.com/OWNER/REPO/actions/workflows/ci.yml)
+[![CI](https://github.com/r00tmebaby/Audit-Sample-Selection-Tool/actions/workflows/ci.yml/badge.svg)](https://github.com/r00tmebaby/Audit-Sample-Selection-Tool/actions/workflows/ci.yml)
 
 # Audit Sample Selection Tool
 
