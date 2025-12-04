@@ -23,12 +23,6 @@ performance and automated tests.
 - Python 3.11+ (tested also on 3.13) 32/64-bit
 - pip / virtualenv
 - (Optional) Docker
-- 
-![REST API Sequence](docs/RestAPI%20Sequence%20Diagram.png)
-![REST API Activity](docs/RestAPI%20Activity%20Diagram.png)
-![REST API Swagger](docs/RestAPI%20Swagger.png)
-![Worker Sequence](docs/Worker%20Sequence%20Diagram.png)
-![Worker Activity](docs/Worker%20Activity%20Diagram.png)
 
 ## Quick Start
 ```bash
@@ -130,81 +124,32 @@ docker run --rm -v %cd%\data:/data/input -v %cd%\output:/data/output audit-sampl
 
 ## Project Structure
 ```
-worker/
-  src/
-    __init__.py
-    main.py            # CLI entry
-    models.py          # Pydantic models and enums
-    cleaner.py         # Data quality & normalization
-    sampler.py         # In-memory + streaming sampler (filters mirrored)
-    reporter.py        # XlsxWriter Excel generation
-    logging_setup.py   # UUID-prefixed structured logging
-  setup.py             # Editable install support
+worker/src/
+  main.py           # CLI entry
+  models.py         # Pydantic + enums
+  cleaner.py        # Data quality & normalization
+  sampler.py        # In-memory + streaming sampler
+  reporter.py       # XlsxWriter Excel generation
+  logging_setup.py  # UUID-prefixed structured logging
 
-restapi/
-  src/
-    __init__.py
-    main.py            # FastAPI app (REST orchestrator)
-    jobs.py            # Background job manager using local subprocesses
-    storage.py         # Filesystem-based job metadata + artifacts
-    schemas.py         # Pydantic models for API contracts
-  Dockerfile           # REST API container image
-  Readme.md            # REST API documentation
+restapi
+   src/
+        main.py           # FastAPI app (REST orchestrator)
+        jobs.py           # Background job manager using local subprocesses
+        storage.py        # Filesystem-based job metadata + artifacts
+        schemas.py        # Pydantic models for API contracts
+   Dockerfile             # REST API container image
+   Redme.md               # REST API documentation
 
-data/
-  population_data.csv  # Sample dataset
-
-docs/
-  RestAPI Sequence Diagram.png
-  RestAPI Activity Diagram.png
-  RestAPI Swagger.png
-  Worker Sequence Diagram.png
-  Worker Activity Diagram.png
-
-restapi_artifacts/
-  <job_id>/            # Per-job inputs, logs, metadata, and Excel output
-
-scripts (root):
-  run_tests.bat        # Windows: lint (black/isort/pyflakes) + pytest
-  run_tests.sh         # macOS/Linux: lint + pytest
-  test_worker.bat      # Windows: worker smoke tests against sample data
-  test_worker.sh       # macOS/Linux: worker smoke tests
-  run_dev_server.bat   # Windows: start FastAPI dev server (creates venv if missing)
-  run_dev_server.sh    # macOS/Linux: start FastAPI dev server (WSL/mac)
+tests/
+  conftest.py            # Shared fixtures
+  test_cleaner.py        # Cleaning & parsing
+  test_sampler.py        # Core sampling logic
+  test_streaming_sampler.py  # Streaming/reservoir
+  test_reporter.py       # Workbook structure/content
+  test_reporter_formula.py  # Interval formula presence
+  test_run_summary.py    # JSON summary validation
 ```
-
-## Helper Scripts
-
-- Windows
-  - `run_tests.bat`:
-    - Creates/activates `.venv` if missing, installs tooling.
-    - Runs black (line length 79), isort, pyflakes on `worker/src` and `restapi/src` only.
-    - Runs pytest on `worker` and `restapi` tests.
-  - `test_worker.bat`:
-    - Installs `worker` editable if missing.
-    - Runs three smoke scenarios against `data/population_data.csv` and asserts outputs:
-      - Default parameters (both, exclude zeros).
-      - Debit-only with zeros included.
-      - Streaming `--fast` mode.
-  - `run_dev_server.bat`:
-    - Creates `.venv` if missing and installs `requirements.txt` once.
-    - Installs `worker` editable (or sets `PYTHONPATH` fallback).
-    - Starts uvicorn with reduced noise: `--log-level warning --no-access-log`.
-
-- macOS/Linux
-  - `run_tests.sh`: same as Windows runner but for Bash.
-  - `test_worker.sh`: same smoke tests, using `python -m worker.src.main`.
-  - `run_dev_server.sh`:
-    - Requires `python3-venv` (`sudo apt install python3-venv` on Ubuntu/WSL).
-    - Creates `.venv`, installs deps, installs `worker` or sets `PYTHONPATH`.
-    - Starts uvicorn with reload and quiet logging.
-
-Notes (WSL/Windows interop):
-- If removing `.venv` from WSL fails due to Windows file locks, delete it from Windows Explorer or re-run the script with `sudo` after closing any Windows processes using the venv.
-- On first run in WSL, install venv tooling: `sudo apt update && sudo apt install python3-venv`.
-- To run the Unix scripts on Windows, use WSL (`wsl.exe -d Ubuntu`) or Git Bash; then:
-  - `chmod +x run_tests.sh test_worker.sh run_dev_server.sh`
-  - `./run_dev_server.sh` from `/mnt/<drive>/<path>`.
 
 ## Design Decisions
 ### Why XlsxWriter (single engine)?
@@ -392,3 +337,4 @@ Even though this tool should meet the core requirements, potential future improv
 - Rate limiting and job prioritization.
 - Metrics and monitoring (Prometheus, Grafana).
 - CI/CD pipelines for automated testing and deployment.
+
