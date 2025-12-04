@@ -1,5 +1,5 @@
 [![CI Windows](https://github.com/r00tmebaby/Audit-Sample-Selection-Tool/actions/workflows/ci-windows.yml/badge.svg)](https://github.com/r00tmebaby/Audit-Sample-Selection-Tool/actions/workflows/ci-windows.yml)
-[![CI Ubuntu](https://github.com/r00tmebaby/Audit-Sample-Selection-Tool/actions/workflows/ci-ubuntu.yml/badge.svg)](https://github.com/r00tmebaby/Audit-Sample-Selection-Tool/actions/workflows/ci-ubuntu.yml)
+[![CI (Ubuntu)](https://github.com/r00tmebaby/Audit-Sample-Selection-Tool/actions/workflows/ci-ubuntu.yml/badge.svg)](https://github.com/r00tmebaby/Audit-Sample-Selection-Tool/actions/workflows/ci-ubuntu.yml)
 [![CI (macOS)](https://github.com/r00tmebaby/Audit-Sample-Selection-Tool/actions/workflows/ci-macos.yml/badge.svg)](https://github.com/r00tmebaby/Audit-Sample-Selection-Tool/actions/workflows/ci-macos.yml)
 
 # Audit Sample Selection Tool
