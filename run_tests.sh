@@ -11,6 +11,14 @@ fi
 source "$VENV_DIR/bin/activate"
 
 python -m pip install --upgrade pip >/dev/null
+
+# Ensure project dependencies are installed (structlog, pydantic, fastapi, etc.)
+if [[ -f requirements.txt ]]; then
+  printf 'Installing project requirements...\n'
+  python -m pip install -r requirements.txt >/dev/null
+fi
+
+# Install test tooling
 python -m pip install black==24.10.0 pyflakes==3.2.0 isort==5.13.2 pytest==8.3.3 httpx==0.27.2 >/dev/null
 
 TARGETS=()

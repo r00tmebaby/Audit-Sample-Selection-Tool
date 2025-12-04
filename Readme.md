@@ -1,3 +1,5 @@
+[![CI](https://github.com/OWNER/REPO/actions/workflows/ci.yml/badge.svg)](https://github.com/OWNER/REPO/actions/workflows/ci.yml)
+
 # Audit Sample Selection Tool
 
 Implementation of RSM's Random Non-Statistical Sampling
@@ -323,7 +325,7 @@ A cross-platform pipeline runs on every push/PR and performs:
 - Test suites (worker/tests and restapi/tests)
 - Worker smoke tests against the sample dataset (data/population_data.csv)
 
-This is configured in `.github/workflows/ci.yml` and runs on Windows and Ubuntu runners.
+This is configured in `.github/workflows/ci.yml` and runs on Windows, Ubuntu, and macOS runners. Pip dependencies are cached via `actions/setup-python` using `requirements.txt`.
 
 ### Future Enhancements
 

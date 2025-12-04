@@ -13,7 +13,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, windows-latest]
+        os: [ubuntu-latest, windows-latest, macos-latest]
         python-version: [ '3.13' ]
 
     steps:
@@ -25,6 +25,7 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
           cache: 'pip'
+          cache-dependency-path: 'requirements.txt'
 
       - name: Show Python version
         run: python -V
@@ -41,18 +42,32 @@ jobs:
         run: |
           test_worker.bat
 
-      - name: Make scripts executable (Unix)
+      - name: Make scripts executable (Ubuntu)
         if: startsWith(matrix.os, 'ubuntu-')
         run: |
           chmod +x run_tests.sh test_worker.sh
 
-      - name: Run test suite (Unix)
+      - name: Run test suite (Ubuntu)
         if: startsWith(matrix.os, 'ubuntu-')
         run: |
           ./run_tests.sh
 
-      - name: Worker smoke tests (Unix)
+      - name: Worker smoke tests (Ubuntu)
         if: startsWith(matrix.os, 'ubuntu-')
         run: |
           ./test_worker.sh
 
+      - name: Make scripts executable (macOS)
+        if: startsWith(matrix.os, 'macos-')
+        run: |
+          chmod +x run_tests.sh test_worker.sh
+
+      - name: Run test suite (macOS)
+        if: startsWith(matrix.os, 'macos-')
+        run: |
+          ./run_tests.sh
+
+      - name: Worker smoke tests (macOS)
+        if: startsWith(matrix.os, 'macos-')
+        run: |
+          ./test_worker.sh

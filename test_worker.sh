@@ -10,6 +10,12 @@ if [[ ! -f "$VENV_DIR/bin/activate" ]]; then
 fi
 source "$VENV_DIR/bin/activate"
 
+# Ensure runtime dependencies are available
+if [[ -f requirements.txt ]]; then
+  printf 'Installing project requirements...\n'
+  python -m pip install -r requirements.txt >/dev/null
+fi
+
 if ! python -m pip show worker >/dev/null 2>&1; then
   printf 'Installing worker package in editable mode...\n'
   python -m pip install -q -e worker
@@ -61,4 +67,3 @@ run_test "Test 2: debit-only with zeros included" --balance-type debit --include
 run_test "Test 3: fast streaming mode" --fast
 
 printf '\nWorker smoke tests passed.\n'
-
