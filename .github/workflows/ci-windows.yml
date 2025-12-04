@@ -1,0 +1,37 @@
+name: CI (Windows)
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+
+jobs:
+  build-test-windows:
+    name: Lint, test, smoke (Windows)
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+          cache: 'pip'
+          cache-dependency-path: 'requirements.txt'
+
+      - name: Show Python version
+        shell: cmd
+        run: python -V
+
+      - name: Run test suite
+        shell: cmd
+        run: |
+          run_tests.bat
+
+      - name: Worker smoke tests
+        shell: cmd
+        run: |
+          test_worker.bat
+

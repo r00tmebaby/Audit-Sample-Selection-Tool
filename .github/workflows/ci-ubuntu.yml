@@ -1,0 +1,35 @@
+name: CI (Ubuntu)
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+
+jobs:
+  build-test-ubuntu:
+    name: Lint, test, smoke (Ubuntu)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+          cache: 'pip'
+          cache-dependency-path: 'requirements.txt'
+
+      - name: Make scripts executable
+        run: |
+          chmod +x run_tests.sh test_worker.sh
+
+      - name: Run test suite
+        run: |
+          ./run_tests.sh
+
+      - name: Worker smoke tests
+        run: |
+          ./test_worker.sh
+
