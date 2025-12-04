@@ -1,0 +1,58 @@
+name: CI
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+
+jobs:
+  build-test:
+    name: Lint, test, and smoke (worker)
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+        python-version: [ '3.13' ]
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: 'pip'
+
+      - name: Show Python version
+        run: python -V
+
+      - name: Run test suite (Windows)
+        if: startsWith(matrix.os, 'windows-')
+        shell: cmd
+        run: |
+          run_tests.bat
+
+      - name: Worker smoke tests (Windows)
+        if: startsWith(matrix.os, 'windows-')
+        shell: cmd
+        run: |
+          test_worker.bat
+
+      - name: Make scripts executable (Unix)
+        if: startsWith(matrix.os, 'ubuntu-')
+        run: |
+          chmod +x run_tests.sh test_worker.sh
+
+      - name: Run test suite (Unix)
+        if: startsWith(matrix.os, 'ubuntu-')
+        run: |
+          ./run_tests.sh
+
+      - name: Worker smoke tests (Unix)
+        if: startsWith(matrix.os, 'ubuntu-')
+        run: |
+          ./test_worker.sh
+

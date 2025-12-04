@@ -317,6 +317,14 @@ On disk, artifacts live under `restapi_artifacts/<job_id>/`:
 - Seeded randomness: use same seed for reproducible samples.
 - Excel formatting issues: ensure XlsxWriter installed correctly.
 
+## Continuous Integration (GitHub Actions)
+A cross-platform pipeline runs on every push/PR and performs:
+- Linting (black 79, isort, pyflakes) on worker/src and restapi/src
+- Test suites (worker/tests and restapi/tests)
+- Worker smoke tests against the sample dataset (data/population_data.csv)
+
+This is configured in `.github/workflows/ci.yml` and runs on Windows and Ubuntu runners.
+
 ### Future Enhancements
 
 Even though this tool should meet the core requirements, potential future improvements include:
@@ -337,4 +345,3 @@ Even though this tool should meet the core requirements, potential future improv
 - Rate limiting and job prioritization.
 - Metrics and monitoring (Prometheus, Grafana).
 - CI/CD pipelines for automated testing and deployment.
-
