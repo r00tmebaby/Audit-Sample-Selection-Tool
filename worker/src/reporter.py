@@ -7,8 +7,6 @@ from pathlib import Path
 from typing import Any
 
 import xlsxwriter
-from tqdm import tqdm
-
 from logging_setup import get_logger
 from models import (
     CleanedTransaction,
@@ -17,6 +15,7 @@ from models import (
     SampleStatistics,
     SamplingParameters,
 )
+from tqdm import tqdm
 
 # RSM corporate palette (from Style Appendix)
 RSM_BLUE_100 = "009cde"

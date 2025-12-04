@@ -27,6 +27,7 @@ ENV/
 .git/
 .gitignore
 *.md
-tests/
+worker/tests/
 .idea/
 .vscode/
+

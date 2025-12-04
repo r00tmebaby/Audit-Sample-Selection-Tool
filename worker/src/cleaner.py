@@ -7,8 +7,8 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any, Literal
 
-from logging_setup import get_logger
-from models import CleanedTransaction, DataQualityReport, EventCode
+from .logging_setup import get_logger
+from .models import CleanedTransaction, DataQualityReport, EventCode
 
 log = get_logger("cleaner")
 

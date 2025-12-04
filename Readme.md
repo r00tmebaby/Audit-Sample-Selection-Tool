@@ -1,15 +1,23 @@
 # Audit Sample Selection Tool
 
 Implementation of RSM's Random Non-Statistical Sampling
-methodology with structured logging, professional Excel reporting, streaming
-performance, and comprehensive automated tests.
+methodology with structured logging, Excel reporting, streaming
+performance and automated tests.
 
-## ✅ Compliance Snapshot
+## Compliance Snapshot
 - Core Sampling Implementation (Part 1)
 - Data Quality Handling (Part 2)
 - Excel Output Generation (Part 3)
 - Testing & Documentation (Part 4)
 - Structured Logging (Part 5)
+
+## Architecture Diagrams
+
+![REST API Sequence](docs/RestAPI%20Sequence%20Diagram.png)
+![REST API Activity](docs/RestAPI%20Activity%20Diagram.png)
+![REST API Swagger](docs/RestAPI%20Swagger.png)
+![Worker Sequence](docs/Worker%20Sequence%20Diagram.png)
+![Worker Activity](docs/Worker%20Activity%20Diagram.png)
 
 ## Prerequisites
 - Python 3.11+ (tested also on 3.13) 32/64-bit
@@ -55,6 +63,7 @@ python -m src.main \
 # One liner:
 python -m src.main --input data/population_data.csv --output-dir output --tolerable 500000 --expected 50000 --assurance 3.0 --seed 42 --fast --progress
 ```
+Fast/Streaming mode applies the same balance-type and zero-amount filters as in-memory sampling, but it only cleans the columns needed for amount-based logic on the fly (dates, doc types, etc. stay raw).
 Flags:
 - `--fast` enables two-pass streaming + reservoir sampling (low memory).
 - `--progress` adds tqdm progress bars for large populations.
@@ -87,10 +96,12 @@ python -m src.main \
   --balance-type TYPE       # debit|credit|both (default both) \
   --high-value FLOAT        # Override interval (optional) \
   --seed INT                # Random seed (default 42) \
-  --include-zeros           # Include zero-amount rows \
-  --fast                    # Streaming sampler mode \
+  --include-zeros           # Include zero-amount rows (off by default) \
+  --fast                    # Streaming sampler mode (shares filters with in-memory) \
   --progress                # Show progress bars
 ```
+Fast mode mirrors the same debit/credit/zero filters but only cleans non-amount columns minimally, so descriptions/doc types remain as-is in streaming runs.
+
 ## Build and Run via Docker
 ```bash
 # Build Docker image
@@ -113,35 +124,87 @@ docker run --rm -v %cd%\data:/data/input -v %cd%\output:/data/output audit-sampl
 
 ## Project Structure
 ```
-src/
-  main.py           # CLI entry
-  models.py         # Pydantic + enums
-  cleaner.py        # Data quality & normalization
-  sampler.py        # In-memory + streaming sampler
-  reporter.py       # XlsxWriter Excel generation
-  logging_setup.py  # UUID-prefixed structured logging
+worker/
+  src/
+    __init__.py
+    main.py            # CLI entry
+    models.py          # Pydantic models and enums
+    cleaner.py         # Data quality & normalization
+    sampler.py         # In-memory + streaming sampler (filters mirrored)
+    reporter.py        # XlsxWriter Excel generation
+    logging_setup.py   # UUID-prefixed structured logging
+  setup.py             # Editable install support
 
 restapi/
-  main.py           # FastAPI app (REST orchestrator)
-  jobs.py           # Background job manager using local subprocesses
-  storage.py        # Filesystem-based job metadata + artifacts
-  schemas.py        # Pydantic models for API contracts
+  src/
+    __init__.py
+    main.py            # FastAPI app (REST orchestrator)
+    jobs.py            # Background job manager using local subprocesses
+    storage.py         # Filesystem-based job metadata + artifacts
+    schemas.py         # Pydantic models for API contracts
+  Dockerfile           # REST API container image
+  Readme.md            # REST API documentation
 
-tests/
-  conftest.py            # Shared fixtures
-  test_cleaner.py        # Cleaning & parsing
-  test_sampler.py        # Core sampling logic
-  test_streaming_sampler.py  # Streaming/reservoir
-  test_reporter.py       # Workbook structure/content
-  test_reporter_formula.py  # Interval formula presence
-  test_run_summary.py    # JSON summary validation
+data/
+  population_data.csv  # Sample dataset
+
+docs/
+  RestAPI Sequence Diagram.png
+  RestAPI Activity Diagram.png
+  RestAPI Swagger.png
+  Worker Sequence Diagram.png
+  Worker Activity Diagram.png
+
+restapi_artifacts/
+  <job_id>/            # Per-job inputs, logs, metadata, and Excel output
+
+scripts (root):
+  run_tests.bat        # Windows: lint (black/isort/pyflakes) + pytest
+  run_tests.sh         # macOS/Linux: lint + pytest
+  test_worker.bat      # Windows: worker smoke tests against sample data
+  test_worker.sh       # macOS/Linux: worker smoke tests
+  run_dev_server.bat   # Windows: start FastAPI dev server (creates venv if missing)
+  run_dev_server.sh    # macOS/Linux: start FastAPI dev server (WSL/mac)
 ```
+
+## Helper Scripts
+
+- Windows
+  - `run_tests.bat`:
+    - Creates/activates `.venv` if missing, installs tooling.
+    - Runs black (line length 79), isort, pyflakes on `worker/src` and `restapi/src` only.
+    - Runs pytest on `worker` and `restapi` tests.
+  - `test_worker.bat`:
+    - Installs `worker` editable if missing.
+    - Runs three smoke scenarios against `data/population_data.csv` and asserts outputs:
+      - Default parameters (both, exclude zeros).
+      - Debit-only with zeros included.
+      - Streaming `--fast` mode.
+  - `run_dev_server.bat`:
+    - Creates `.venv` if missing and installs `requirements.txt` once.
+    - Installs `worker` editable (or sets `PYTHONPATH` fallback).
+    - Starts uvicorn with reduced noise: `--log-level warning --no-access-log`.
+
+- macOS/Linux
+  - `run_tests.sh`: same as Windows runner but for Bash.
+  - `test_worker.sh`: same smoke tests, using `python -m worker.src.main`.
+  - `run_dev_server.sh`:
+    - Requires `python3-venv` (`sudo apt install python3-venv` on Ubuntu/WSL).
+    - Creates `.venv`, installs deps, installs `worker` or sets `PYTHONPATH`.
+    - Starts uvicorn with reload and quiet logging.
+
+Notes (WSL/Windows interop):
+- If removing `.venv` from WSL fails due to Windows file locks, delete it from Windows Explorer or re-run the script with `sudo` after closing any Windows processes using the venv.
+- On first run in WSL, install venv tooling: `sudo apt update && sudo apt install python3-venv`.
+- To run the Unix scripts on Windows, use WSL (`wsl.exe -d Ubuntu`) or Git Bash; then:
+  - `chmod +x run_tests.sh test_worker.sh run_dev_server.sh`
+  - `./run_dev_server.sh` from `/mnt/<drive>/<path>`.
 
 ## Design Decisions
 ### Why XlsxWriter (single engine)?
 - Faster formatted writes for 10k+ rows vs cell-by-cell styling.
 - Rich formatting (colors, number formats, borders) with low memory.
-- Avoids file locking temp artifacts seen with previous approach.
+- Avoids file locking temp artifacts seen with previous approach with openpyxl.
 
 ### Why Pure Python CSV Instead of Pandas?
 - No native build dependencies; works on constrained environments.
@@ -227,6 +290,8 @@ The repository also includes a FastAPI-based REST API (`restapi/`) that orchestr
 by running the same CLI (`python -m src.main`) as a local subprocess. This mode does **not**
 launch Kubernetes Jobs; everything runs inside the API process/container.
 
+
+
 ### Start the API locally
 ```bash
 # From the project root
@@ -294,9 +359,30 @@ On disk, artifacts live under `restapi_artifacts/<job_id>/`:
 
 ## Troubleshooting
 - Permission denied writing Excel: ensure file not open in Excel.
-- Large file performance: always use `--fast`.
+- Large file performance: always use `--fast` 
 - Unexpected coverage: verify interval calculation (override vs formula).
 - Logging missing: check logging setup and run UUID prefix.
 - CSV parsing errors: ensure valid CSV format with headers.
 - Seeded randomness: use same seed for reproducible samples.
 - Excel formatting issues: ensure XlsxWriter installed correctly.
+
+### Future Enhancements
+
+Even though this tool should meet the core requirements, potential future improvements include:
+- Web UI for job submission and monitoring.
+- Integration with cloud storage (S3, Azure Blob) for input/output.
+  - Support for additional sampling methodologies.  
+  - Enhanced data validation and cleaning options.
+- Support for additional sampling methodologies.  
+- Enhanced data validation and cleaning options.
+- Integration with audit management systems for seamless workflows.
+- Docker Compose setup for local multi-container orchestration (API + worker).
+- Kubernetes Job orchestration mode for distributed processing. For this mode,
+  the API would create Kubernetes `Job` resources instead of local subprocesses,
+  allowing scaling across a cluster. 
+* I created helm charts to test that but did not extend further to keep the scope focused.
+- Shared libraries for common functionality between CLI and REST API and models.
+- Authentication and authorization for API access.
+- Rate limiting and job prioritization.
+- Metrics and monitoring (Prometheus, Grafana).
+- CI/CD pipelines for automated testing and deployment.

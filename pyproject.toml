@@ -1,7 +1,6 @@
 [tool.black]
 line-length = 79
 target-version = ["py311"]
-include = '\\.py$'
 extend-exclude = '''
 /(\.venv|build|dist|\.pytest_cache)/
 '''
@@ -28,4 +27,5 @@ plugins = []
 
 [tool.pytest.ini_options]
 addopts = "-q"
-pythonpath = ["src", "restapi"]
+pythonpath = ["worker/src", "restapi/src"]
+testpaths = ["tests", "restapi/tests"]

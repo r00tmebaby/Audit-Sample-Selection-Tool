@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 import asyncio
+import logging
+import os
 import shutil
 import subprocess
 import sys
@@ -13,6 +15,8 @@ from fastapi import UploadFile
 
 from .schemas import JobLogEntry, JobStatus, SamplingParams
 from .storage import JobStorage
+
+logger = logging.getLogger("restapi.jobs")
 
 
 def _build_cli_args(
@@ -81,6 +85,7 @@ class JobManager:
         input_path = self.storage.input_path(job_id)
         with input_path.open("wb") as handle:
             shutil.copyfileobj(file.file, handle)
+        logger.info("Queued job %s (%s)", job_id, file.filename)
         self.storage.create_job_record(
             job_id, file.filename or "input.csv", params
         )
@@ -91,9 +96,11 @@ class JobManager:
         """Background worker loop to process jobs from the queue."""
         while True:
             job_id = await self.queue.get()
+            logger.info("Starting job %s", job_id)
             try:
                 # Run the job in a background thread so we don't block the event loop
                 await asyncio.to_thread(self._run_job_sync, job_id)
+                logger.info("Finished job %s", job_id)
             except Exception as exc:  # pragma: no cover - guard rail
                 import traceback
 
@@ -132,12 +139,16 @@ class JobManager:
         detail = self.storage.load_job(job_id)
         self.storage.update_job(job_id, status=JobStatus.PROCESSING)
         cmd = _build_cli_args(job_id, detail.params, self.storage)
+        logger.info("Launching worker for job %s", job_id)
 
         proc = subprocess.run(
             cmd,
-            cwd=Path.cwd(),
+            cwd=os.path.join(Path.cwd(), "worker"),  # Run in worker context
             capture_output=True,
             text=True,
+        )
+        logger.info(
+            "Worker exited for job %s with code %s", job_id, proc.returncode
         )
 
         # Capture stdout
@@ -168,6 +179,12 @@ class JobManager:
                 if stderr_lines
                 else "No stderr output"
             )
+            logger.error(
+                "Job %s failed with code %s: %s",
+                job_id,
+                proc.returncode,
+                stderr_summary,
+            )
             self.storage.update_job(
                 job_id,
                 status=JobStatus.FAILED,
@@ -180,3 +197,4 @@ class JobManager:
         self.storage.update_job(
             job_id, status=JobStatus.DONE, report_path=rel_path
         )
+        logger.info("Job %s succeeded: %s", job_id, rel_path)

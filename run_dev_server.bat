@@ -1,13 +1,32 @@
 @echo off
 REM Start the REST API with proper environment
 
+setlocal ENABLEDELAYEDEXPANSION
+
 echo Starting Audit Sampling REST API...
 echo.
 echo Working directory: %cd%
 echo.
 
+SET NEED_DEPS=0
+if not exist .venv\Scripts\activate.bat (
+  echo Creating virtual environment...
+  py -m venv .venv || goto :fail
+  SET NEED_DEPS=1
+)
+
 REM Activate virtual environment
 call .venv\Scripts\activate.bat || goto :fail
+
+if %NEED_DEPS%==1 (
+  if exist requirements.txt (
+    echo Installing Python requirements...
+    python -m pip install --upgrade pip >nul || goto :fail
+    python -m pip install -q -r requirements.txt || goto :fail
+  ) else (
+    echo requirements.txt not found; skipping dependency installation.
+  )
+)
 
 REM Ensure worker is installed in editable mode so restapi can import it
 if exist worker\setup.py (
@@ -37,4 +56,5 @@ echo Failed to start REST API.
 exit /b 1
 
 :end
+endlocal
 exit /b 0

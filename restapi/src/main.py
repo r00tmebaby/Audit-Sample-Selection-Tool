@@ -3,8 +3,17 @@
 from __future__ import annotations
 
 import asyncio
+import logging
 import sys
+from contextlib import asynccontextmanager
 from pathlib import Path
+
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s | %(name)s | %(levelname)s | %(message)s",
+)
+for noisy in ("uvicorn", "uvicorn.access"):
+    logging.getLogger(noisy).setLevel(logging.WARNING)
 
 if sys.platform == "win32":
     asyncio.set_event_loop_policy(asyncio.WindowsProactorEventLoopPolicy())
@@ -32,8 +41,23 @@ app = FastAPI(
     description="API for submitting and managing audit sampling jobs.",
     author="r00tmebaby",
 )
+api_logger = logging.getLogger("restapi.api")
 storage = JobStorage()
 manager = JobManager(storage)
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    api_logger.info("Starting job manager")
+    await manager.start()
+    try:
+        yield
+    finally:
+        api_logger.info("Stopping job manager")
+        await manager.stop()
+
+
+app.router.lifespan_context = lifespan
 
 
 @app.get("/", include_in_schema=False)
@@ -41,19 +65,9 @@ async def docs_redirect():
     return RedirectResponse(url="/docs")
 
 
-@app.on_event("startup")
-async def startup_event() -> None:
-    """Initialize and start the job manager on application startup."""
-    await manager.start()
-
-
-@app.on_event("shutdown")
-async def shutdown_event() -> None:
-    """Gracefully stop the job manager on application shutdown."""
-    await manager.stop()
-
-
-@app.post("/jobs", response_model=JobCreateResponse, tags=["jobs"])
+@app.post(
+    "/jobs", response_model=JobCreateResponse, tags=["Audit Job Sampling"]
+)
 async def submit_job(
     file: UploadFile = File(...),
     tolerable_misstatement: float = Form(..., gt=0),
@@ -80,6 +94,7 @@ async def submit_job(
             progress=progress,
         )
     except ValidationError as exc:
+        api_logger.warning("Invalid job parameters: %s", exc)
         # Surface a simple 422 message when parameters are not worker-compliant
         raise HTTPException(status_code=422, detail=str(exc)) from exc
 
@@ -87,32 +102,25 @@ async def submit_job(
     return JobCreateResponse(job_id=job_id, status=JobStatus.PENDING)
 
 
-@app.get("/jobs/{job_id}", response_model=JobDetail, tags=["jobs"])
+@app.get(
+    "/jobs/{job_id}", response_model=JobDetail, tags=["Audit Job Sampling"]
+)
 async def get_job(job_id: str) -> JobDetail:
-    """Retrieve detailed information about a specific job.
-
-    @param job_id: Identifier of the job
-    @return: JobDetail object with job information
-    """
+    """Retrieve detailed information about a specific job."""
     try:
         return storage.load_job(job_id)
     except FileNotFoundError:
+        api_logger.warning("Job %s not found", job_id)
         raise HTTPException(status_code=404, detail="Job not found")
 
 
-@app.get("/jobs", response_model=JobListResponse, tags=["jobs"])
+@app.get("/jobs", response_model=JobListResponse, tags=["Audit Job Sampling"])
 async def list_jobs(
     limit: int = Query(20, ge=1, le=100),
     offset: int = Query(0, ge=0),
     order: Order = Query(Order.DESC),
 ) -> JobListResponse:
-    """List jobs with pagination and ordering.
-
-    :param limit: Maximum number of jobs to return
-    :param offset: Number of jobs to skip
-    :param order: Sort order (ascending or descending by creation time)
-    :return: JobListResponse containing the paginated jobs
-    """
+    """List jobs with pagination and ordering."""
     jobs = storage.list_jobs()
     jobs.sort(key=lambda job: job.created_at, reverse=(order == Order.DESC))
     total = len(jobs)
@@ -122,18 +130,16 @@ async def list_jobs(
     )
 
 
-@app.get("/jobs/{job_id}/report", tags=["jobs"])
+@app.get("/jobs/{job_id}/report", tags=["Audit Job Sampling"])
 async def download_report(job_id: str) -> FileResponse:
-    """Download the Excel report for a completed job.
-
-    :param job_id: Identifier of the job
-    :return: FileResponse with the report file
-    """
+    """Download the Excel report for a completed job."""
     try:
         job = storage.load_job(job_id)
     except FileNotFoundError:
+        api_logger.warning("Report requested for missing job %s", job_id)
         raise HTTPException(status_code=404, detail="Job not found")
     if job.status != JobStatus.DONE or not job.report_path:
+        api_logger.warning("Report not ready for job %s", job_id)
         raise HTTPException(status_code=400, detail="Report not ready")
 
     # Resolve path - handle both relative and absolute paths
@@ -142,13 +148,25 @@ async def download_report(job_id: str) -> FileResponse:
         path = Path.cwd() / path
 
     if not path.exists():
+        api_logger.error("Report file missing for job %s: %s", job_id, path)
         raise HTTPException(
             status_code=404, detail=f"Report file missing: {path}"
         )
-
-    # Return file with proper headers for download
     return FileResponse(
         path=path,
         media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
         filename=f"sample_selection_{job_id}.xlsx",
     )
+
+
+@app.middleware("http")
+async def log_requests(request, call_next):
+    api_logger.info("HTTP %s %s started", request.method, request.url.path)
+    response = await call_next(request)
+    api_logger.info(
+        "HTTP %s %s completed -> %s",
+        request.method,
+        request.url.path,
+        response.status_code,
+    )
+    return response

@@ -9,32 +9,35 @@ from typing import Iterable, List
 
 from .schemas import JobDetail, JobLogEntry, JobStatus, SamplingParams
 
-ARTIFACT_ROOT = Path("restapi_artifacts")
+ARTIFACT_ROOT = Path("restapi_artifacts").resolve()
 
 
 class JobStorage:
     """Filesystem-based job persistence helper."""
 
     def __init__(self, root: Path | None = None) -> None:
-        self.root = root or ARTIFACT_ROOT
+        base_root = root.resolve() if root else ARTIFACT_ROOT
+        self.root = base_root
         self.root.mkdir(parents=True, exist_ok=True)
 
     def job_dir(self, job_id: str) -> Path:
-        path = self.root / job_id
+        path = (self.root / job_id).resolve()
         path.mkdir(parents=True, exist_ok=True)
         return path
 
     def input_path(self, job_id: str) -> Path:
-        return self.job_dir(job_id) / "input.csv"
+        return (self.job_dir(job_id) / "input.csv").resolve()
 
     def metadata_path(self, job_id: str) -> Path:
-        return self.job_dir(job_id) / "metadata.json"
+        return (self.job_dir(job_id) / "metadata.json").resolve()
 
     def log_path(self, job_id: str) -> Path:
-        return self.job_dir(job_id) / "logs.jsonl"
+        return (self.job_dir(job_id) / "logs.jsonl").resolve()
 
     def report_path(self, job_id: str) -> Path:
-        return self.job_dir(job_id) / "sample_selection_output.xlsx"
+        return (
+            self.job_dir(job_id) / "sample_selection_output.xlsx"
+        ).resolve()
 
     def create_job_record(
         self,

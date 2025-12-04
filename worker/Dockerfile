@@ -10,13 +10,13 @@ RUN apt-get update && \
     rm -rf /var/lib/apt/lists/*
 
 # Copy requirements first for better caching
-COPY requirements.txt .
+COPY ../requirements.txt .
 
 # Install Python dependencies
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy source code
-COPY worker/src/ ./src/
+COPY src ./src/
 
 # Copy setup files
 COPY setup.py pyproject.toml ./

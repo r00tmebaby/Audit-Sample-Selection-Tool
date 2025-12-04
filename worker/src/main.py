@@ -10,11 +10,11 @@ from datetime import datetime, timezone
 from pathlib import Path
 from uuid import uuid4
 
-from cleaner import clean_data
-from logging_setup import configure_logging, get_logger
-from models import EventCode, SamplingParameters
-from reporter import generate_reports
-from sampler import generate_sample, generate_sample_streaming
+from .cleaner import clean_data
+from .logging_setup import configure_logging, get_logger
+from .models import EventCode, RunSummary, SamplingParameters
+from .reporter import generate_reports
+from .sampler import generate_sample, generate_sample_streaming
 
 
 def parse_args() -> argparse.Namespace:
@@ -178,7 +178,6 @@ def main() -> int:
     sampling_seconds = round(sampling_seconds, 2)
     reporting_seconds = round(reporting_seconds, 2)
     total_duration = round(total_duration, 2)
-    from models import RunSummary
 
     summary = RunSummary(
         run_id=run_id,
