@@ -17,11 +17,15 @@ performance and automated tests.
 
 ## Architecture Diagrams
 
+Worker 
+![Worker Sequence](docs/Worker%20Sequence%20Diagram.png)
+![Worker Activity](docs/Worker%20Activity%20Diagram.png)
+
+FastAPI
 ![REST API Sequence](docs/RestAPI%20Sequence%20Diagram.png)
 ![REST API Activity](docs/RestAPI%20Activity%20Diagram.png)
 ![REST API Swagger](docs/RestAPI%20Swagger.png)
-![Worker Sequence](docs/Worker%20Sequence%20Diagram.png)
-![Worker Activity](docs/Worker%20Activity%20Diagram.png)
+
 
 ## Prerequisites
 - Python 3.11+ (tested also on 3.13) 32/64-bit
